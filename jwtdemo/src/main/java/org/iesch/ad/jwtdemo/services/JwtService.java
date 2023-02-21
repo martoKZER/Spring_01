@@ -14,8 +14,11 @@ import java.security.Key;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -68,4 +71,23 @@ public class JwtService {
         return extractClaim(jwt, Claims::getExpiration);
     }
 
+    public String generateToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        // Información adicional como "claim"
+        var rol = userDetails.getAuthorities().stream().collect(Collectors.toList()).get(0);
+        claims.put("rol", rol);
+        return createToken(claims, userDetails.getUsername());
+    }
+
+    private String createToken(Map<String, Object> claims, String username) {
+        Instant now = Instant.now();
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(username)
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(now.plus(7L, ChronoUnit.DAYS)))
+                .signWith(hmacKey)
+                .compact();
+    }
 }
